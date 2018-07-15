@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:batch="http://www.springframework.org/schema/batch"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://www.springframework.org/schema/batch
+	http://www.springframework.org/schema/batch/spring-batch.xsd
+ ">
+
+
+	<!--                       spring batch                      -->
+    <bean id="jobRepository"
+          class="org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean">
+        <property name="transactionManager" ref="transactionManager"/>
+    </bean>
+
+    <bean id="transactionManager"
+          class="org.springframework.batch.support.transaction.ResourcelessTransactionManager"/>
+    <bean id="jobLauncher"
+          class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+        <property name="jobRepository" ref="jobRepository"/>
+    </bean>
+
+
+    <batch:job id="integrationTradingDate">
+		<batch:step id="readTradingDateWriteToDatebase">
+			<batch:tasklet task-executor="taskExecutor"
+                           throttle-limit="20">
+				<batch:chunk reader="inputDateReader" writer="ProductItemWriter"
+							 processor="itemProcessor" commit-interval="12">
+				</batch:chunk>
+			</batch:tasklet>
+		</batch:step>
+	</batch:job>
+
+    <bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <property name="corePoolSize" value="6" />
+        <property name="maxPoolSize" value="12" />
+        <property name="queueCapacity" value="25" />
+    </bean>
+
+	<bean id="itemProcessor" class="com.beifa.cn.data.integration.spring.batch.reader.processor.TradingDateProcessor"/>
+
+
+	<bean id="inputDateReader" class="org.springframework.batch.item.file.FlatFileItemReader">
+		<property name="resource" value="classpath:input/input.csv"/>
+		<property name="lineMapper" ref="lineMapper"/>
+		<property name="linesToSkip" value="1"/>
+	</bean>
+
+	<bean id="lineMapper"
+		  class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+		<property name="lineTokenizer">
+			<bean
+					class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer">
+				<property name="names" value="stockCode,itemValue1,itemValue2,itemValue3"/>
+			</bean>
+		</property>
+
+		<property name="fieldSetMapper" ref="fieldSetMapper"/>
+	</bean>
+
+
+	<bean id="fieldSetMapper"
+		  class="com.beifa.cn.data.integration.spring.batch.reader.mapper.TradeDateFieldSetMapper">
+	</bean>
+
+	<bean id="csvItemWriter" class="org.springframework.batch.item.file.FlatFileItemWriter">
+		<property name="resource" value="file:target/output/output.csv" />
+		<property name="lineAggregator">
+			<bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value=","/>
+				<property name="fieldExtractor">
+					<bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="item_id,tradingDataDate,stockCode,itemValue1,itemValue2,itemValue3"/>
+					</bean>
+				</property>
+
+			</bean>
+		</property>
+	</bean>
+
+    <bean id="ProductItemWriter" class="com.beifa.cn.data.integration.spring.batch.writer.cassandra.TradeDateCassandraWriter"/>
+
+</beans>
