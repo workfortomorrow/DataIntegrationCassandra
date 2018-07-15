@@ -35,8 +35,8 @@
 	</batch:job>
 
     <bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
-        <property name="corePoolSize" value="6" />
-        <property name="maxPoolSize" value="12" />
+        <property name="corePoolSize" value="60" />
+        <property name="maxPoolSize" value="100" />
         <property name="queueCapacity" value="25" />
     </bean>
 
