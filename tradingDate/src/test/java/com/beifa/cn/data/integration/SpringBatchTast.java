@@ -21,7 +21,6 @@ public class SpringBatchTast {
     @Before
     public void setup() throws Exception {
         String[] springConfig = {"applicationContext.xml"};
-//        context = new ClassPathXmlApplicationContext(springConfig);
         context = new ClassPathXmlApplicationContext("classpath:applicationContext.xml");
     }
 
